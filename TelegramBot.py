@@ -931,14 +931,77 @@ def webhook_info():
         "allowed_updates": info.allowed_updates
     }, 200
 
+def start_polling_with_keepalive():
+    """Start bot polling in a separate thread with keep-alive HTTP server"""
+    import threading
+
+    def polling_worker():
+        """Worker function to run bot polling in background"""
+        print("🤖 Starting Telegram bot polling...")
+        try:
+            bot.remove_webhook()  # Remove any existing webhook
+            bot.polling(none_stop=True, interval=1, timeout=20)
+        except Exception as e:
+            print(f"❌ Polling error: {e}")
+
+    # Start polling in a separate thread
+    polling_thread = threading.Thread(target=polling_worker, daemon=True)
+    polling_thread.start()
+    print("✅ Bot polling started in background thread")
+
+    return polling_thread
+
+@app.route('/keep-alive', methods=['GET'])
+def keep_alive():
+    """Keep-alive endpoint for uptime monitoring services"""
+    return {
+        "status": "alive",
+        "timestamp": datetime.now().isoformat(),
+        "message": "🤖 Telegram Quiz Bot is running with polling + keep-alive",
+        "mode": "polling_with_keepalive"
+    }, 200
+
+@app.route('/health', methods=['GET'])
+def health_check():
+    """Detailed health check endpoint"""
+    return {
+        "status": "healthy",
+        "timestamp": datetime.now().isoformat(),
+        "bot_info": {
+            "username": bot.get_me().username,
+            "first_name": bot.get_me().first_name
+        },
+        "mode": "polling_with_keepalive",
+        "uptime_tip": "Use /keep-alive endpoint for uptime monitoring"
+    }, 200
+
 if __name__ == '__main__':
-    # For local development, you can still use polling
+    deployment_mode = os.getenv('DEPLOYMENT_MODE', 'webhook')
+
     if os.getenv('ENVIRONMENT') == 'local':
-        print("🔄 Running in local mode with polling...")
+        print("🔄 Running in local development mode with polling...")
         bot.remove_webhook()
         bot.polling()
+    elif deployment_mode == 'polling_keepalive':
+        # Polling + Keep-alive mode for Cloud Run
+        print("🚀 Starting in POLLING + KEEP-ALIVE mode for Cloud Run...")
+        print("📡 This mode combines polling with HTTP server for keep-alive")
+
+        # Start polling in background thread
+        polling_thread = start_polling_with_keepalive()
+
+        # Start Flask server for keep-alive
+        port = int(os.getenv('PORT', 8080))
+        print(f"🌐 Keep-alive server starting on port {port}")
+        print(f"💡 Use external monitoring service to ping: /keep-alive")
+        print(f"🔍 Health check available at: /health")
+
+        try:
+            app.run(host='0.0.0.0', port=port, debug=False, threaded=True)
+        except KeyboardInterrupt:
+            print("\n🛑 Shutting down bot...")
     else:
-        # For production (Cloud Run), use Flask server
+        # Default webhook mode
         port = int(os.getenv('PORT', 8080))
         print(f"🚀 Starting webhook server on port {port}...")
         print(f"📡 Webhook path: {WEBHOOK_PATH}")

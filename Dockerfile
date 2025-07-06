@@ -16,5 +16,9 @@ COPY . .
 # Expose port (Cloud Run will set PORT environment variable)
 EXPOSE 8080
 
-# Use gunicorn for production
-CMD exec gunicorn --bind :$PORT --workers 1 --threads 8 --timeout 0 TelegramBot:app
+# Support both webhook and polling + keep-alive modes
+CMD if [ "$DEPLOYMENT_MODE" = "polling_keepalive" ]; then \
+      python TelegramBot.py; \
+    else \
+      exec gunicorn --bind :$PORT --workers 1 --threads 8 --timeout 0 TelegramBot:app; \
+    fi

@@ -173,13 +173,27 @@ python StudentBot.py
 python run_local.py
 ```
 
-### Google Cloud Run (Production)
+### Google Cloud Run - Option 1: Webhooks (Most Efficient)
 ```bash
-# Deploy to Cloud Run with webhooks
+# Deploy with webhooks (pay per request)
 gcloud builds submit --config cloudbuild.yaml
 ```
+- ✅ Most cost-effective for low/medium traffic
+- ✅ Scales to zero when idle
+- ❌ Requires webhook setup
 
-See [DEPLOYMENT.md](DEPLOYMENT.md) for detailed deployment instructions.
+### Google Cloud Run - Option 2: Polling + Keep-Alive (Simplest)
+```bash
+# Deploy with polling + keep-alive (always running)
+gcloud builds submit --config cloudbuild-polling.yaml
+```
+- ✅ Simple setup, no webhook configuration
+- ✅ Works exactly like local development
+- ❌ Slightly higher cost (runs continuously)
+
+### Deployment Guides
+- **Webhooks**: See [DEPLOYMENT.md](DEPLOYMENT.md)
+- **Polling + Keep-Alive**: See [POLLING-KEEPALIVE-DEPLOYMENT.md](POLLING-KEEPALIVE-DEPLOYMENT.md)
 
 ## 🔧 Architecture
 
@@ -237,3 +251,4 @@ For issues or questions:
 2. Verify database connection
 3. Ensure bot tokens are correct
 4. Check that all dependencies are installed
+"# TelegramBotForCellege" 
